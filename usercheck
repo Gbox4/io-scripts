@@ -1,0 +1,90 @@
+#!/bin/bash
+
+NONE='\033[0m'
+GREEN='\033[32m'
+RED='\033[31m'
+CYAN='\033[36m'
+BOLD='\033[1m'
+
+UIDMIN=$(grep -E '^UID_MIN' /etc/login.defs | awk '{print($2)}')
+
+#UIDMAX=$(grep -E '^UID_MAX' /etc/login.defs | awk '{print($2)}')
+UIDMAX=1100
+
+echo "Searching for users on the system..."
+USERS=$(getent passwd $(seq $UIDMIN $UIDMAX | xargs -n 5 echo) | awk -F: '{print $1}')
+echo
+echo "The following users were found:"
+echo -e "${BOLD}${USERS}${NONE}"
+echo
+echo -e -n "Would you like to save a copy of these usernames? ${BOLD}[Y/n]${NONE} "
+read SAVE
+if [ -z "$SAVE" ] || [ "$SAVE" = "y" ] || [ "$SAVE" = "Y" ]
+then
+	echo "$USERS" > users.txt
+	echo -e "${CYAN}List saved in $(pwd)/users.txt${NONE}"
+fi
+
+echo -e -n "Enter all ${GREEN}${BOLD}authorized users${NONE} (delimmed by spaces): "
+read AUTHED_USERS
+
+echo
+
+MISSING_USERS=""
+for USER in $AUTHED_USERS
+do
+	MISSING="true"
+	for CUSER in $USERS
+	do
+		if [ "$USER" == "$CUSER" ]
+		then
+			MISSING="false"
+		fi
+	done
+	if [ $MISSING == "true" ]; then
+		MISSING_USERS+=$"$USER\n"
+	fi
+done
+
+if [ -z "$MISSING_USERS" ]
+then
+	echo -e "${GREEN}No users are missing.${NONE}"
+else
+	echo -e "The following authorized users were ${RED}${BOLD}not found:${NONE}"
+	echo -e ${BOLD}${MISSING_USERS}${NONE}
+	echo -e -n "Would you like to create accounts for them? ${BOLD}[y/N]${NONE} "
+	read create
+fi
+
+echo
+
+UNAUTHED_USERS=""
+for USER in $USERS
+do
+	AUTHED="false"
+	for AUSER in $AUTHED_USERS
+	do
+		if [ "$AUSER" == "$USER" ]
+		then
+			AUTHED="true"
+		fi
+	done
+	if [ $AUTHED == "false" ]; then
+		UNAUTHED_USERS+=$"$USER\n"
+	fi
+done
+
+if [ -z "$UNAUTHED_USERS" ]
+then
+	echo -e "${GREEN}No users are unauthorized.${NONE}"
+else
+	echo -e "The following ${RED}${BOLD}unauthorized${NONE} users were found:"
+	echo -e ${BOLD}${UNAUTHED_USERS}${NONE}
+	echo -e -n "Would you like to remove them? ${BOLD}[y/N]${NONE} "
+	read REMOVE
+	if [ "$REMOVE" = "y" ] || [ "$REMOVE" = "Y" ]
+	then
+		echo -e "Saving backups in "
+		#echo -e "${UNAUTHED_USERS}" | xargs -I{} -d'\n' userdel -r {}
+	fi
+fi
