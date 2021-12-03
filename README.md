@@ -1,4 +1,4 @@
-# cyberpatriot-scripts
+# io-scripts
 scripts for iolani
 
 # scripts in this repo:
