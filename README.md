@@ -1,5 +1,5 @@
 # cyberpatriot-scripts
-scripts for iolani cyberpatriot
+scripts for iolani
 
 # scripts in this repo:
 ## usercheck
